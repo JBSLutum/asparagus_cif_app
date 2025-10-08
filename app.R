@@ -332,7 +332,7 @@ ui <- fluidPage(
                 target = "_blank"),
                      " | ",  
               #Provide the correct link once the app and codes are hosted in HortiBonn repo
-              tags$a("View Source", href = "https://github.com/PrajnaKARai/Onion_DA", # temp link
+              tags$a("View Source", href = "https://github.com/JBSLutum/asparagus_cif_app", # temp link
                 target = "_blank")
                   ),
               br(), br(),br(), br(),

@@ -110,6 +110,12 @@ source("functions/asparagus_sim_scen_app.R")
 source("functions/dynamic-helper.R")
 #source("functions/funding_server.R") # Provide this function when you have funding data entered in the excel sheet in data folder
 
+#load additional input table, weather and scenario_ids
+risk_path<-file.path("data", "risk_df.csv")
+scenario_path<-file.path("data", "scenarios.csv")
+risk_df<-read.csv(risk_path)
+scenarios<-read.csv(scenario_path)
+
 # Provide Location of excel workbook containing the input parameters (prepared for the dynamic-helper)
 file_path_vars <- "data/ASP_input_parameters_german.xlsx"
 sheet_meta <- readxl::read_excel(file_path_vars, sheet = "sheet_names",
@@ -227,8 +233,8 @@ ui <- fluidPage(
                    #   create_funding_ui("funding")
                    # ),
                    # br(),
-                   # ### Dynamic elements ----
-                   # uiOutput("dynamic_element_ui")
+                   ### Dynamic elements ----
+                   uiOutput("dynamic_element_ui")
                    
                  )
                  
@@ -260,8 +266,8 @@ ui <- fluidPage(
               #uiOutput("financial_support_links"),
               
               
-              tags$h4("Selected Financial Supports"),
-              tableOutput("summary"),
+              # tags$h4("Selected Financial Supports"),
+              # tableOutput("summary"),
               
               #Debug:
               #verbatimTextOutput("summary"), 
@@ -677,9 +683,7 @@ server <- function(input, output, session) {
     content  = function(file) write_csv(current_input_table(), file)
   )
   
-  #load additional input table, weather and scenario_ids
-  risk_df<-read.csv("data/risk_df.csv")
-  scenarios<-read.csv("data/scenarios.csv")
+
   
   ## Monte Carlo Simulation ----
   mcSimulation_results <- eventReactive(input$run_simulation, {
@@ -772,7 +776,7 @@ server <- function(input, output, session) {
                          vars =c("marketable_yield_today", "marketable_yield_ssp1", "marketable_yield_ssp2", "marketable_yield_ssp3", "marketable_yield_ssp5"),
                          old_names = c("marketable_yield_today", "marketable_yield_ssp1", "marketable_yield_ssp2", "marketable_yield_ssp3", "marketable_yield_ssp5"),
                          new_names = c("marketable yield\n2020", "marketable yield\n2075 SSP1 scenario", "marketable yield\n2075 SSP2 scenario", "marketable yield\n2075 SSP3 scenario", "marketable yield\n2075 SSP5 scenario"),
-                         method = 'smooth_simple_overlay', 
+                         method = 'boxplot', 
                          base_size = 10, 
                          x_axis_name = "Compare of marketable yield outcomes")
     

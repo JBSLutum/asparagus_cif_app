@@ -256,7 +256,12 @@ ui <- fluidPage(
                 tags$br(),
                 tags$br(),
                 "Über Rückmeldungen würden wir uns sehr freuen. Bitte kontaktieren Sie:",
-                tags$a(href = "mailto:jbsl@uni-bonn.de", "Jan-Bernd Schulze Lutum"), ". Fragen die dieses Tool betreffen bitte an:", tags$a(href = "mailto:pkasargo@uni-bonn.de", "Prajna Kasargodu Anebagilu"), "oder", tags$a(href = "mailto:afuelle1@uni-bonn.de", "Adrain Fuelle."),
+                tags$br(),
+                tags$a(href = "mailto:jbsl@uni-bonn.de", "Jan-Bernd Schulze Lutum."), 
+                tags$br(),
+                "Fragen die dieses Tool betreffen bitte an:",
+                tags$br(),
+                tags$a(href = "mailto:pkasargo@uni-bonn.de", "Prajna Kasargodu Anebagilu"), "oder", tags$a(href = "mailto:afuelle1@uni-bonn.de", "Adrain Fuelle."),
               ),
               br(), br(),
               

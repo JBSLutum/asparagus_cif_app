@@ -256,7 +256,7 @@ ui <- fluidPage(
                 tags$br(),
                 tags$br(),
                 "Über Rückmeldungen würden wir uns sehr freuen. Bitte kontaktieren Sie:",
-                tags$a(href = "mailto:jbsl@uni-bonn.de", "Jan-Bernd Schulze Lutum"), ". For questions regarding the tool, you can reach out to", tags$a(href = "mailto:pkasargo@uni-bonn.de", "Prajna Kasargodu Anebagilu"), "or", tags$a(href = "mailto:afuelle1@uni-bonn.de", "Adrain Fuelle."),
+                tags$a(href = "mailto:jbsl@uni-bonn.de", "Jan-Bernd Schulze Lutum"), ". Fragen die dieses Tool betreffen bitte an:", tags$a(href = "mailto:pkasargo@uni-bonn.de", "Prajna Kasargodu Anebagilu"), "oder", tags$a(href = "mailto:afuelle1@uni-bonn.de", "Adrain Fuelle."),
               ),
               br(), br(),
               
@@ -334,7 +334,7 @@ ui <- fluidPage(
                        style = "margin-right: auto; max-width: 100%; height: auto; cursor: pointer;"),
               #Provide tool usage disclaimer
               tags$p(
-                  tags$a("Disclaimer", href = "https://agroreforest.eu/reforest-tools-disclaimer/",
+                  tags$a("Disclaimer", href = "https://www.gartenbauwissenschaften.uni-bonn.de/imprint",
                 target = "_blank"),
                      " | ",  
               #Provide the correct link once the app and codes are hosted in HortiBonn repo

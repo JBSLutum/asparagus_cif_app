@@ -107,7 +107,8 @@ library(lubridate)
 #source("functions/DA_for_exploring_funding_effects_data_visualisation.R")
 source("functions/youtputs_to_xinputs_scenarios.R")
 source("functions/asparagus_sim_scen_app.R")
-source("functions/dynamic-helper.R")
+# source("functions/dynamic-helper.R")
+source("functions/dynamic_helper_v3.R")
 #source("functions/funding_server.R") # Provide this function when you have funding data entered in the excel sheet in data folder
 
 #load additional input table, weather and scenario_ids
@@ -115,13 +116,6 @@ risk_path<-file.path("data", "risk_df.csv")
 scenario_path<-file.path("data", "scenarios.csv")
 risk_df<-read.csv(risk_path)
 scenarios<-read.csv(scenario_path)
-
-#test
-message("WD beim App-Start: ", getwd())
-message(scenario_path)
-message(head(scenarios))
-#
-
 
 # Provide Location of excel workbook containing the input parameters (prepared for the dynamic-helper)
 file_path_vars <- "data/ASP_input_parameters_german.xlsx"
@@ -231,6 +225,23 @@ ui <- fluidPage(
                          )
                        ),
                        uiOutput("category_filter_ui")
+                     )
+                   ),
+                   
+                   ### Crop filter ----
+                   accordion_panel(
+                     title = "Crop Selection",
+                     icon = icon("clipboard-question"),
+                     tagList(
+                       tags$h5(
+                         "Crop",
+                         # tags$span(
+                         #   icon("circle-question"),
+                         #   title = "Select your main expertise to view and edit only relevant variables.\nNot selecting any box shows all variables.\nDefaults apply to unselected categories in simulations.",
+                         #   style = "cursor: help; margin-left: 8px;"
+                         # )
+                       ),
+                       uiOutput("crop_filter_ui")
                      )
                    ),
                    
@@ -391,28 +402,6 @@ server <- function(input, output, session) {
   #   if (! name %in% names(vec)) return(0)
   #   as.numeric(vec[name])
   # }
-  # 
-  ## Dynamic expertise-filter module ----
-  # helper that sanitises category names into safe IDs
-  sanitize <- function(x) gsub("[^A-Za-z0-9]", "_", x)
-  
-  # all categories across every sheet
-  categories <- reactive({
-    cats <- unique(unlist(lapply(excelData(), function(df) df$Expertise)))
-    cats <- cats[!is.na(cats) & cats != ""]
-    trimws(unique(unlist(strsplit(cats, ";"))))
-  })
-  
-  # filter bar UI
-  output$category_filter_ui <- renderUI({
-    if (length(categories()) == 0) return(NULL)
-    tagList(
-      lapply(categories(), function(cat){
-        checkboxInput(
-          paste0("cat_", sanitize_id(cat)), cat, value = FALSE)
-      })
-    )
-  })
   
   ## Dynamic UI inputs ----
   
@@ -427,6 +416,58 @@ server <- function(input, output, session) {
     names(all_sheets) <- sheet_names
     all_sheets
   })
+  
+  ## Dynamic expertise-filter module ----
+  # helper that sanitises category names into safe IDs
+  sanitize <- function(x) gsub("[^A-Za-z0-9]", "_", x)
+  
+  # all categories across every sheet
+  categories <- reactive({
+    cats <- unique(unlist(lapply(excelData(), function(df) df$Expertise)))
+    cats <- cats[!is.na(cats) & cats != ""]
+    trimws(unique(unlist(strsplit(cats, ";"))))
+  })
+
+  # all crop across every sheet from input excel
+  crop_categories <- reactive({
+    crop_cats <- unique(unlist(lapply(excelData(), function(df) df$Crop)))
+    crop_cats <- crop_cats[!is.na(crop_cats) & crop_cats != ""]
+    trimws(unique(unlist(strsplit(crop_cats, ";"))))
+  })
+  
+  # Expertise filter UI (unchanged)
+  output$category_filter_ui <- renderUI({
+    if (length(categories()) == 0) return(NULL)
+    tagList(lapply(categories(), function(cat){
+      checkboxInput(paste0("cat_", sanitize_id(cat)), cat, value = FALSE)
+    }))
+  })
+  
+  # Crop filter UI (prefix -> crop_)
+  output$crop_filter_ui <- renderUI({
+    crops <- crop_categories()
+    if (!length(crops)) return(NULL)
+    
+    tagList(
+      # group them in a container so we can scope the JS
+      tags$div(class = "crop-filter",
+               lapply(crops, function(crop_cat){
+                 checkboxInput(paste0("crop_", sanitize_id(crop_cat)), crop_cat, value = FALSE)
+               })
+      ),
+      # JS: when one crop box is checked, uncheck all others in the same container
+      tags$script(HTML("
+      $(document).on('change', '.crop-filter input[type=checkbox]', function(){
+        var $box = $(this);
+        if ($box.is(':checked')) {
+          $('.crop-filter input[type=checkbox]').not($box).prop('checked', false).trigger('change');
+        }
+      });
+    "))
+    )
+  })
+  
+
   
   
   # util: turns a category vector into a JS condition 
@@ -534,44 +575,44 @@ server <- function(input, output, session) {
     # View(input_file)
     #print(1)
     
-    # funding_names <- 
-    #   c("funding_onetime_percentage_initial_cost_schemes_c", "annual_funding_schemes_c",
-    #     "funding_onetime_percentage_consult_schemes_c","funding_onetime_per_tree_schemes_c",
-    #     "funding_onetime_per_m_treerow_schemes_c", "funding_onetime_per_m_hedgerow_schemes_c","annual_funding_per_m_schemes_c",
-    #     "annual_funding_per_tree_schemes_c", "funding_onetime_schemes_c",
-    #     "onetime_external_percentage_incost_schemes_c","onetime_external_percentage_consult_schemes_c",
-    #     "funding_onetime_per_ha_schemes_c", "onetime_external_support_c", "annual_external_support_c")
-    # funding_df <- data.frame(variable = funding_names,
-    #                          lower = 0,
-    #                          upper = 0,
-    #                          distribution = "const")
-    # 
-    # try(total_funding <- funding$total_funding_with_private())
-    # 
-    # if ("total_funding" %in% ls()) {
-    #   #print(2)
-    #   
-    #   input_file <- 
-    #     data.frame(variable = names(total_funding),
-    #                lower = unname(total_funding),
-    #                upper = unname(total_funding),
-    #                distribution = "const") %>% 
-    #     bind_rows(input_file, .)
-    #   
-    #   remain <- funding_names[!(funding_names %in% input_file$variable)]
-    #   input_file <- funding_df %>% 
-    #     filter(variable %in% remain) %>% 
-    #     bind_rows(input_file, .)
-    #   
-    #   # View(input_file)
-    # }else {
-    #   input_file <- bind_rows(input_file, funding_df)
-    # }
-    # 
-    # #View(input_file)
-    # 
-    # # # 4. Save UI snapshot (optional)
-    # # saveRDS(list(sheet_names, input_file), "data/Walnut_grain_veg_tub_ui_updated.RDS")
+    funding_names <- 
+      c("funding_onetime_percentage_initial_cost_schemes_c", "annual_funding_schemes_c",
+        "funding_onetime_percentage_consult_schemes_c","funding_onetime_per_tree_schemes_c",
+        "funding_onetime_per_m_treerow_schemes_c", "funding_onetime_per_m_hedgerow_schemes_c","annual_funding_per_m_schemes_c",
+        "annual_funding_per_tree_schemes_c", "funding_onetime_schemes_c",
+        "onetime_external_percentage_incost_schemes_c","onetime_external_percentage_consult_schemes_c",
+        "funding_onetime_per_ha_schemes_c", "onetime_external_support_c", "annual_external_support_c")
+    funding_df <- data.frame(variable = funding_names,
+                             lower = 0,
+                             upper = 0,
+                             distribution = "const")
+    
+    try(total_funding <- funding$total_funding_with_private())
+    
+    if ("total_funding" %in% ls()) {
+      #print(2)
+      
+      input_file <- 
+        data.frame(variable = names(total_funding),
+                   lower = unname(total_funding),
+                   upper = unname(total_funding),
+                   distribution = "const") %>% 
+        bind_rows(input_file, .)
+      
+      remain <- funding_names[!(funding_names %in% input_file$variable)]
+      input_file <- funding_df %>% 
+        filter(variable %in% remain) %>% 
+        bind_rows(input_file, .)
+      
+      # View(input_file)
+    }else {
+      input_file <- bind_rows(input_file, funding_df)
+    }
+    
+    #View(input_file)
+    
+    # # 4. Save UI snapshot (optional)
+    # saveRDS(list(sheet_names, input_file), "data/Walnut_grain_veg_tub_ui_updated.RDS")
     
     # 5. clean-up: keep only numeric rows
     input_file <- input_file %>%
@@ -700,10 +741,6 @@ server <- function(input, output, session) {
   ## Monte Carlo Simulation ----
   mcSimulation_results <- eventReactive(input$run_simulation, {
     input_file <- current_input_table()
-    # bind into the function's environment:
-    environment(asparagus_sim_scen)$scenarios <- scenarios
-    environment(asparagus_sim_scen)$risk_df <- risk_df
-    
     
     # 6. Run Monte-Carlo
     # Provide model_function
@@ -711,8 +748,10 @@ server <- function(input, output, session) {
       estimate          = decisionSupport::as.estimate(input_file),
       model_function    = asparagus_sim_scen,
       numberOfModelRuns = input$num_simulations_c,
-      functionSyntax    = "plainNames"
-      )
+      functionSyntax    = "plainNames",
+      risk_df,
+      scenarios
+    )
     
   })
   #restructure output, write additional parameters that are used in the model
@@ -941,10 +980,10 @@ server <- function(input, output, session) {
         evpi_input <- as.data.frame(cbind(
           mc_data$x,
           #Provide correct variable
-          marketable_yield_dif = mc_data$y$marketable_yield_ssp3-mc_data$y$marketable_yield_today
+          NPV_decision_AF1 = mc_data$y$NPV_decis_AF_ES3
         ))
         # Provide the NPV_decision variable to calculate EVPI
-        evpi_result <- decisionSupport::multi_EVPI(evpi_input, "marketable_yield_dif")
+        evpi_result <- decisionSupport::multi_EVPI(evpi_input, "NPV_decis_AF_ES3")
         
         # saveRDS(evpi_input, "evpi_input_test.rds")
         # evpi_input <- readRDS("evpi_input_test.rds")
@@ -957,7 +996,7 @@ server <- function(input, output, session) {
           distinct(variable, name) %>%
           deframe()
         #Provide correct variable
-        plot8 <- plot_evpi(evpi_result, decision_vars = "marketable_yield_dif",
+        plot8 <- plot_evpi(evpi_result, decision_vars = "NPV_decis_AF_ES3",
                            new_names = "") +
           scale_y_discrete(labels = var_lookup)
         

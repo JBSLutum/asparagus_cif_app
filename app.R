@@ -741,6 +741,9 @@ server <- function(input, output, session) {
   ## Monte Carlo Simulation ----
   mcSimulation_results <- eventReactive(input$run_simulation, {
     input_file <- current_input_table()
+    # bind into the function's environment:
+    environment(asparagus_sim_scen)$scenarios <- scenarios
+    environment(asparagus_sim_scen)$risk_df <- risk_df
     
     # 6. Run Monte-Carlo
     # Provide model_function
@@ -748,9 +751,7 @@ server <- function(input, output, session) {
       estimate          = decisionSupport::as.estimate(input_file),
       model_function    = asparagus_sim_scen,
       numberOfModelRuns = input$num_simulations_c,
-      functionSyntax    = "plainNames",
-      risk_df,
-      scenarios
+      functionSyntax    = "plainNames"
     )
     
   })

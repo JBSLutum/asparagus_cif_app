@@ -116,6 +116,13 @@ scenario_path<-file.path("data", "scenarios.csv")
 risk_df<-read.csv(risk_path)
 scenarios<-read.csv(scenario_path)
 
+#test
+message("WD beim App-Start: ", getwd())
+message(scenario_path)
+message(head(scenarios))
+#
+
+
 # Provide Location of excel workbook containing the input parameters (prepared for the dynamic-helper)
 file_path_vars <- "data/ASP_input_parameters_german.xlsx"
 sheet_meta <- readxl::read_excel(file_path_vars, sheet = "sheet_names",
@@ -527,44 +534,44 @@ server <- function(input, output, session) {
     # View(input_file)
     #print(1)
     
-    funding_names <- 
-      c("funding_onetime_percentage_initial_cost_schemes_c", "annual_funding_schemes_c",
-        "funding_onetime_percentage_consult_schemes_c","funding_onetime_per_tree_schemes_c",
-        "funding_onetime_per_m_treerow_schemes_c", "funding_onetime_per_m_hedgerow_schemes_c","annual_funding_per_m_schemes_c",
-        "annual_funding_per_tree_schemes_c", "funding_onetime_schemes_c",
-        "onetime_external_percentage_incost_schemes_c","onetime_external_percentage_consult_schemes_c",
-        "funding_onetime_per_ha_schemes_c", "onetime_external_support_c", "annual_external_support_c")
-    funding_df <- data.frame(variable = funding_names,
-                             lower = 0,
-                             upper = 0,
-                             distribution = "const")
-    
-    try(total_funding <- funding$total_funding_with_private())
-    
-    if ("total_funding" %in% ls()) {
-      #print(2)
-      
-      input_file <- 
-        data.frame(variable = names(total_funding),
-                   lower = unname(total_funding),
-                   upper = unname(total_funding),
-                   distribution = "const") %>% 
-        bind_rows(input_file, .)
-      
-      remain <- funding_names[!(funding_names %in% input_file$variable)]
-      input_file <- funding_df %>% 
-        filter(variable %in% remain) %>% 
-        bind_rows(input_file, .)
-      
-      # View(input_file)
-    }else {
-      input_file <- bind_rows(input_file, funding_df)
-    }
-    
-    #View(input_file)
-    
-    # # 4. Save UI snapshot (optional)
-    # saveRDS(list(sheet_names, input_file), "data/Walnut_grain_veg_tub_ui_updated.RDS")
+    # funding_names <- 
+    #   c("funding_onetime_percentage_initial_cost_schemes_c", "annual_funding_schemes_c",
+    #     "funding_onetime_percentage_consult_schemes_c","funding_onetime_per_tree_schemes_c",
+    #     "funding_onetime_per_m_treerow_schemes_c", "funding_onetime_per_m_hedgerow_schemes_c","annual_funding_per_m_schemes_c",
+    #     "annual_funding_per_tree_schemes_c", "funding_onetime_schemes_c",
+    #     "onetime_external_percentage_incost_schemes_c","onetime_external_percentage_consult_schemes_c",
+    #     "funding_onetime_per_ha_schemes_c", "onetime_external_support_c", "annual_external_support_c")
+    # funding_df <- data.frame(variable = funding_names,
+    #                          lower = 0,
+    #                          upper = 0,
+    #                          distribution = "const")
+    # 
+    # try(total_funding <- funding$total_funding_with_private())
+    # 
+    # if ("total_funding" %in% ls()) {
+    #   #print(2)
+    #   
+    #   input_file <- 
+    #     data.frame(variable = names(total_funding),
+    #                lower = unname(total_funding),
+    #                upper = unname(total_funding),
+    #                distribution = "const") %>% 
+    #     bind_rows(input_file, .)
+    #   
+    #   remain <- funding_names[!(funding_names %in% input_file$variable)]
+    #   input_file <- funding_df %>% 
+    #     filter(variable %in% remain) %>% 
+    #     bind_rows(input_file, .)
+    #   
+    #   # View(input_file)
+    # }else {
+    #   input_file <- bind_rows(input_file, funding_df)
+    # }
+    # 
+    # #View(input_file)
+    # 
+    # # # 4. Save UI snapshot (optional)
+    # # saveRDS(list(sheet_names, input_file), "data/Walnut_grain_veg_tub_ui_updated.RDS")
     
     # 5. clean-up: keep only numeric rows
     input_file <- input_file %>%
@@ -693,6 +700,10 @@ server <- function(input, output, session) {
   ## Monte Carlo Simulation ----
   mcSimulation_results <- eventReactive(input$run_simulation, {
     input_file <- current_input_table()
+    # bind into the function's environment:
+    environment(asparagus_sim_scen)$scenarios <- scenarios
+    environment(asparagus_sim_scen)$risk_df <- risk_df
+    
     
     # 6. Run Monte-Carlo
     # Provide model_function
@@ -700,10 +711,8 @@ server <- function(input, output, session) {
       estimate          = decisionSupport::as.estimate(input_file),
       model_function    = asparagus_sim_scen,
       numberOfModelRuns = input$num_simulations_c,
-      functionSyntax    = "plainNames",
-      risk_df,
-      scenarios
-    )
+      functionSyntax    = "plainNames"
+      )
     
   })
   #restructure output, write additional parameters that are used in the model
@@ -932,10 +941,10 @@ server <- function(input, output, session) {
         evpi_input <- as.data.frame(cbind(
           mc_data$x,
           #Provide correct variable
-          NPV_decision_AF1 = mc_data$y$NPV_decis_AF_ES3
+          marketable_yield_dif = mc_data$y$marketable_yield_ssp3-mc_data$y$marketable_yield_today
         ))
         # Provide the NPV_decision variable to calculate EVPI
-        evpi_result <- decisionSupport::multi_EVPI(evpi_input, "NPV_decis_AF_ES3")
+        evpi_result <- decisionSupport::multi_EVPI(evpi_input, "marketable_yield_dif")
         
         # saveRDS(evpi_input, "evpi_input_test.rds")
         # evpi_input <- readRDS("evpi_input_test.rds")
@@ -948,7 +957,7 @@ server <- function(input, output, session) {
           distinct(variable, name) %>%
           deframe()
         #Provide correct variable
-        plot8 <- plot_evpi(evpi_result, decision_vars = "NPV_decis_AF_ES3",
+        plot8 <- plot_evpi(evpi_result, decision_vars = "marketable_yield_dif",
                            new_names = "") +
           scale_y_discrete(labels = var_lookup)
         

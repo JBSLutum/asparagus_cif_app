@@ -106,6 +106,8 @@ library(lubridate)
 # source("functions/saveLoad-module.R")
 #source("functions/DA_for_exploring_funding_effects_data_visualisation.R")
 source("functions/youtputs_to_xinputs_scenarios.R")
+source("functions/plot_yield_asparagus.R")
+
 source("functions/asparagus_sim_scen_app.R")
 # source("functions/dynamic-helper.R")
 source("functions/dynamic_helper_v3.R")
@@ -755,23 +757,7 @@ server <- function(input, output, session) {
     )
     
   })
-  #restructure output, write additional parameters that are used in the model
-  #form output to input side for analysis
-  outputs<-c("water_stress_risk",
-             "insect_risk",
-             "disease_risk",
-             "photosynthetic_active_days",
-             "weather_damage_risk",
-             "growth_start_doy",
-             "speargrowth",
-             "chill_portions",
-             "late_frost_risk",
-             "temp_fluctuation_risk",
-             "extreme_rainfall_risk",
-             "extreme_heat_risk",
-             "Tsoil_mean")
-  
-  #mcSimulation_results<-youtputs_to_xinputs_scenarios(mcSimulation_results, outputs)
+
   ## Generating plots ----
   # helper to add title subtile caption etc
   add_meta <- function(p, title, subtitle = NULL, caption = NULL,
@@ -825,14 +811,35 @@ server <- function(input, output, session) {
   observeEvent(mcSimulation_results(), {
     mc_data <- mcSimulation_results()
     # Provide correct variables for plots
-    plot1 <-
-      decisionSupport::plot_distributions(mcSimulation_object = mc_data, 
-                         vars =c("marketable_yield_today", "marketable_yield_ssp1", "marketable_yield_ssp2", "marketable_yield_ssp3", "marketable_yield_ssp5"),
-                         old_names = c("marketable_yield_today", "marketable_yield_ssp1", "marketable_yield_ssp2", "marketable_yield_ssp3", "marketable_yield_ssp5"),
-                         new_names = c("marketable yield\n2020", "marketable yield\n2075 SSP1 scenario", "marketable yield\n2075 SSP2 scenario", "marketable yield\n2075 SSP3 scenario", "marketable yield\n2075 SSP5 scenario"),
-                         method = 'boxplot', 
-                         base_size = 10, 
-                         x_axis_name = "Compare of marketable yield outcomes")
+    # plot1 <-
+    #   decisionSupport::plot_distributions(mcSimulation_object = mc_data, 
+    #                      vars =c("marketable_yield_today", "marketable_yield_ssp1", "marketable_yield_ssp2", "marketable_yield_ssp3", "marketable_yield_ssp5"),
+    #                      old_names = c("marketable_yield_today", "marketable_yield_ssp1", "marketable_yield_ssp2", "marketable_yield_ssp3", "marketable_yield_ssp5"),
+    #                      new_names = c("marketable yield\n2020", "marketable yield\n2075 SSP1 scenario", "marketable yield\n2075 SSP2 scenario", "marketable yield\n2075 SSP3 scenario", "marketable yield\n2075 SSP5 scenario"),
+    #                      method = 'boxplot', 
+    #                      base_size = 20, 
+    #                      x_axis_name = "Compare of marketable yield outcomes")
+    # plot1 <- plot1 + ggplot2::coord_flip()
+    
+    #restructure output, write additional parameters that are used in the model
+    #form output to input side for analysis
+    outputs<-c("water_stress_risk",
+               "insect_risk",
+               "disease_risk",
+               "photosynthetic_active_days",
+               "weather_damage_risk",
+               "growth_start_doy",
+               "speargrowth",
+               "chill_portions",
+               "late_frost_risk",
+               "temp_fluctuation_risk",
+               "extreme_rainfall_risk",
+               "extreme_heat_risk",
+               "Tsoil_mean")
+    
+    mc_data_order<-youtputs_to_xinputs_scenarios(mc_data, outputs)
+    source("functions/plot_yield_asparagus.R")
+    plot1<-plot_yield_asparagus(mc_data_order)
     
     
 #     plot2 <- decisionSupport::plot_distributions(

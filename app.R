@@ -841,7 +841,8 @@ server <- function(input, output, session) {
     source("functions/plot_yield_asparagus.R")
     plot1<-plot_yield_asparagus(mc_data_order)
     
-    
+    source("functions/VIP_plot.R")
+    plot2<-VIP_plot(mc_data_order)
 #     plot2 <- decisionSupport::plot_distributions(
 #       mc_data, "NPV_decis_AF_ES3",
 #       method     = "smooth_simple_overlay",
@@ -924,16 +925,16 @@ server <- function(input, output, session) {
     
     # Send plots to UI
     output$plot1_ui <- renderPlot({ plot1 })
-    make_download("download_plot1", plot1, "Figure1_NPV.png")
+    make_download("download_plot1", plot1, "Figure1_marketable_yield.png")
     output$plot1_dl_ui <- renderUI({
       downloadButton("download_plot1", "Download Figure 1")
     })
     
-    # output$plot2_ui <- renderPlot({ plot2 })
-    # make_download("download_plot2", plot2, "Figure2_Decision_NPV.png")
-    # output$plot2_dl_ui <- renderUI({
-    #   downloadButton("download_plot2", "Download Figure 2")
-    # })
+    output$plot2_ui <- renderPlot({ plot2 })
+    make_download("download_plot2", plot2, "Figure2_VIP_compare.png")
+    output$plot2_dl_ui <- renderUI({
+      downloadButton("download_plot2", "Download Figure 2")
+    })
     # 
     # output$plot3_ui <- renderPlot({ plot3 })
     # make_download("download_plot3", plot3, "Figure3_Funding_NPVs.png")

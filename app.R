@@ -421,7 +421,7 @@ server <- function(input, output, session) {
   
   ## Dynamic expertise-filter module ----
   # helper that sanitises category names into safe IDs
-  sanitize <- function(x) gsub("[^A-Za-z0-9]", "_", x)
+  sanitize_id <- function(x) gsub("[^A-Za-z0-9]", "_", x)
   
   # all categories across every sheet
   categories <- reactive({
@@ -479,17 +479,29 @@ server <- function(input, output, session) {
     cat_vec <- cat_vec[cat_vec != "" & !is.na(cat_vec)]
     if (length(cat_vec) == 0) return("true")
     
-    cat_ids <- sprintf("input['cat_%s']", sanitize_id(cat_vec))
+    ids <- sanitize_id(cat_vec)
     
-    cat_show_all <- paste0(
+    # Expertise (cat_)
+    exp_ids <- sprintf("input['cat_%s']", ids)
+    exp_show_all <- paste0(
       "Object.keys(input).filter(k => k.startsWith('cat_')).",
       "every(k => input[k] === false)"
     )
+    exp_clause <- sprintf("(%s) || (%s)", exp_show_all, paste(exp_ids, collapse = " || "))
     
-    sprintf("(%s) || (%s)",            # show when *no* cat box ticked
-            cat_show_all,              #…or any matching cat ticked
-            paste(cat_ids, collapse = ' || '))
+    # Crops (crop_)
+    crop_ids <- sprintf("input['crop_%s']", ids)
+    crop_show_all <- paste0(
+      "Object.keys(input).filter(k => k.startsWith('crop_')).",
+      "every(k => input[k] === false)"
+    )
+    crop_clause <- sprintf("(%s) || (%s)", crop_show_all, paste(crop_ids, collapse = " || "))
+    
+    # Beide Gruppen müssen passen
+    sprintf("(%s) && (%s)", exp_clause, crop_clause)
   }
+  
+  
   
   
   output$dynamic_element_ui <- renderUI({
@@ -503,8 +515,9 @@ server <- function(input, output, session) {
       
       sheet <- data_list[[j]]
       
-      cats  <- unique(trimws(unlist(strsplit(sheet$Expertise %||% "", ";|,"))))
-      cats  <- cats[cats != ""]
+      cats_exp  <- unique(trimws(unlist(strsplit(sheet$Expertise %||% "", ";|,"))))
+      cats_crop  <- unique(trimws(unlist(strsplit(sheet$Crop %||% "", ";|,"))))
+      cats <- unique(c(cats_exp[cats_exp!=""], cats_crop[cats_crop!=""]))
       
       ui_elems <- lapply(seq_len(nrow(sheet)), function(i) {
         create_ui_element(sheet[i, ])

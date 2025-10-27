@@ -109,8 +109,13 @@ create_ui_element <- function(row) {
     if (min_val <= 0) min_val <- 0.0001
     max_val <- max_val + abs(max_val) * 0.5
   } else if (identical(distr, "tnorm_0_1")) {
-    min_val <- 0
-    max_val <- 1
+    # never use exact 0 or 1 — avoids qnorm/qlogis infinities
+    eps <- 1e-6
+    min_val <- eps
+    max_val <- 1 - eps
+    
+    # min_val <- 0
+    # max_val <- 1
   } else {
     min_val <- min_val - abs(min_val) * 0.5
     max_val <- max_val + abs(max_val) * 0.5

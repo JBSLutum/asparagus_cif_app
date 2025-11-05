@@ -101,14 +101,38 @@ if (!requireNamespace("lubridate", quietly = TRUE)) {
 }
 library(lubridate)
 
+if (!requireNamespace("zoo", quietly = TRUE)) {
+  install.packages("zoo")
+}
+library(zoo)
+
+if (!requireNamespace("RcppRoll", quietly = TRUE)) {
+  install.packages("RcppRoll")
+}
+library(RcppRoll)
+
+if (!requireNamespace("compiler", quietly = TRUE)) {
+  install.packages("compiler")
+}
+library(compiler)
+
+if (!requireNamespace("data.table", quietly = TRUE)) {
+  install.packages("data.table")
+}
+library(data.table)
+
 # Load functins and inputs ----
 # Provide Location of DA model script, dynamic-helper and funding-server scripts
 # source("functions/saveLoad-module.R")
 #source("functions/DA_for_exploring_funding_effects_data_visualisation.R")
 source("functions/youtputs_to_xinputs_scenarios.R")
 source("functions/plot_yield_asparagus.R")
-
 source("functions/asparagus_sim_scen_app.R")
+
+source("functions/01_weather_shiny.R")
+source("functions/02_helpers_shiny.R")
+source("functions/03_model_shiny.R")
+
 # source("functions/dynamic-helper.R")
 source("functions/dynamic_helper_v3.R")
 #source("functions/funding_server.R") # Provide this function when you have funding data entered in the excel sheet in data folder
@@ -118,6 +142,9 @@ risk_path<-file.path("data", "risk_df.csv")
 scenario_path<-file.path("data", "scenarios.csv")
 risk_df<-read.csv(risk_path)
 scenarios<-read.csv(scenario_path)
+
+onion_weather_path<-file.path("data", "weather_koeln-bonn_final_compressed.rds")
+onion_weather<-readRDS(onion_weather_path)
 
 # Provide Location of excel workbook containing the input parameters (prepared for the dynamic-helper)
 file_path_vars <- "data/ASP_input_parameters_german.xlsx"
@@ -764,10 +791,11 @@ server <- function(input, output, session) {
     input_file <- current_input_table()
     crop <- selected_crop()
     # bind into the function's environment:
-    environment(asparagus_sim_scen)$scenarios <- scenarios
-    environment(asparagus_sim_scen)$risk_df <- risk_df
+
     
     if (crop=="Asparagus"){
+      environment(asparagus_sim_scen)$scenarios <- scenarios
+      environment(asparagus_sim_scen)$risk_df <- risk_df
     # 6. Run Monte-Carlo
     # Provide model_function
     decisionSupport::mcSimulation(
@@ -778,10 +806,21 @@ server <- function(input, output, session) {
     )
     }
     else if (crop=="Onions"){
-      shiny::showNotification(
-        if (is.null(sel)) "kein Crop ausgewählt" else paste("Crop:", sel),
-        type = "message"
-      )}
+      environment(process_weather_data)$onion_weather <- onion_weather
+      
+      weather_precomputed <- process_weather_data(
+        file_path = onion_weather,
+        base_temp = 1
+      )
+
+    decisionSupport::mcSimulation(
+        estimate = decisionSupport::as.estimate(input_file),
+        model_function = onion_climate_impact,
+        numberOfModelRuns = input$num_simulations_c,
+        functionSyntax = "plainNames"
+      )
+      
+      }
     else{
       shiny::showNotification(
       "kein Crop ausgewählt",
@@ -853,6 +892,12 @@ server <- function(input, output, session) {
     #                      x_axis_name = "Compare of marketable yield outcomes")
     # plot1 <- plot1 + ggplot2::coord_flip()
     
+    crop <- selected_crop()
+    # bind into the function's environment:
+    
+    
+    if (crop=="Asparagus"){
+      
     #restructure output, write additional parameters that are used in the model
     #form output to input side for analysis
     outputs<-c("water_stress_risk",
@@ -870,6 +915,7 @@ server <- function(input, output, session) {
                "Tsoil_mean")
     
     mc_data_order<-youtputs_to_xinputs_scenarios(mc_data, outputs)
+    }
     source("functions/plot_yield_asparagus.R")
     plot1<-plot_yield_asparagus(mc_data_order)
     

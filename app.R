@@ -751,15 +751,23 @@ server <- function(input, output, session) {
     content  = function(file) write_csv(current_input_table(), file)
   )
   
+  selected_crop <- reactive({
+    crop_ids <- grep("^crop_", names(input), value = TRUE)
+    checked  <- crop_ids[sapply(crop_ids, function(id) isTRUE(input[[id]]))]
+    if (length(checked) == 0) return(NULL)
+    sub("^crop_", "", checked[1])
+  })
 
   
   ## Monte Carlo Simulation ----
   mcSimulation_results <- eventReactive(input$run_simulation, {
     input_file <- current_input_table()
+    crop <- selected_crop()
     # bind into the function's environment:
     environment(asparagus_sim_scen)$scenarios <- scenarios
     environment(asparagus_sim_scen)$risk_df <- risk_df
     
+    if (crop=="Asparagus"){
     # 6. Run Monte-Carlo
     # Provide model_function
     decisionSupport::mcSimulation(
@@ -768,6 +776,17 @@ server <- function(input, output, session) {
       numberOfModelRuns = input$num_simulations_c,
       functionSyntax    = "plainNames"
     )
+    }
+    else if (crop=="Onions"){
+      shiny::showNotification(
+        if (is.null(sel)) "kein Crop ausgewählt" else paste("Crop:", sel),
+        type = "message"
+      )}
+    else{
+      shiny::showNotification(
+      "kein Crop ausgewählt",
+      type = "message"
+    )}
     
   })
 
